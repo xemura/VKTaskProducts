@@ -1,4 +1,4 @@
-package com.xenia.vktaskproducts
+package com.xenia.vktaskproducts.model
 
 data class Product(
     val brand: String,
