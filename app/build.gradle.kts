@@ -84,5 +84,5 @@ dependencies {
     val lifecycleVersion = "2.7.0"
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycleVersion")
 
-
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.6.1")
 }
