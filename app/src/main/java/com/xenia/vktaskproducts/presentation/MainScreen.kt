@@ -1,7 +1,10 @@
-package com.xenia.vktaskproducts.ui.screens
+package com.xenia.vktaskproducts.presentation
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,121 +18,125 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
 import coil.compose.rememberImagePainter
 import com.xenia.vktaskproducts.R
-import com.xenia.vktaskproducts.model.Product
+import com.xenia.vktaskproducts.domain.Product
 
 @Composable
 fun MainScreen(
     paddingValues: PaddingValues,
-    marsUiState: ProductUiState,
-    modifier: Modifier = Modifier,
+    products: LazyPagingItems<Product>
 ) {
-    when (marsUiState) {
-        is ProductUiState.Loading -> LoadingScreen()
-        is ProductUiState.Success -> ResultScreen(
-            paddingValues,
-            marsUiState.products
-        )
-        is ProductUiState.Error -> ErrorScreen( modifier = modifier.fillMaxSize())
+    val context = LocalContext.current
+    LaunchedEffect(key1 = products.loadState) {
+        if(products.loadState.refresh is LoadState.Error) {
+            Toast.makeText(
+                context,
+                "Error: " + (products.loadState.refresh as LoadState.Error).error.message,
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (products.loadState.refresh is LoadState.Loading) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(10.dp),
+                    color = Color.DarkGray
+                )
+                Text(
+                    text = "Loading...", modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            ResultScreen(
+                paddingValues,
+                products
+            )
+        }
     }
 }
 
-
 @Composable
-fun LoadingScreen() {
+fun ResultScreen(paddingValues: PaddingValues, products: LazyPagingItems<Product>) {
+
     Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = paddingValues.calculateTopPadding())
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.padding(10.dp),
-            color = Color.DarkGray
-        )
-        Text(text = "Loading...", modifier = Modifier
-            .padding(16.dp)
-            .fillMaxWidth(),
-            textAlign = TextAlign.Center)
-    }
-}
-
-@Composable
-fun ErrorScreen(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.ic_connection_error), contentDescription = ""
-        )
-        Text(text = "Loading failed", modifier = Modifier.padding(16.dp))
-    }
-}
-
-@Composable
-fun ResultScreen(paddingValues: PaddingValues, products: List<Product>?) {
-
-    if (products != null) {
         Column(
             modifier = Modifier
-                .fillMaxSize().padding(top = paddingValues.calculateTopPadding())
+                .verticalScroll(rememberScrollState())
+                .padding(5.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(5.dp)
+            CustomStaggeredVerticalGrid(
+                numColumns = 2,
+                modifier = Modifier.padding(5.dp)
             ) {
-                CustomStaggeredVerticalGrid(
-                    numColumns = 2,
-                    modifier = Modifier.padding(5.dp)
-                ) {
-                    products.forEach { item ->
-
-                        Card(
+                for (i in 0 until products.itemCount) {
+                    val item = products[i]
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(5.dp),
+                        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(5.dp),
-                            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
-                            shape = RoundedCornerShape(10.dp)
+                                .fillMaxSize()
+                                .align(Alignment.CenterHorizontally),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .align(Alignment.CenterHorizontally),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                LoadImageFromUrl(item.thumbnail)
+                            LoadImageFromUrl(item?.thumbnail)
 
-                                Text(
-                                    text = item.title,
-                                    fontSize = 18.sp,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier
-                                        .padding(horizontal = 5.dp)
-                                        .fillMaxWidth()
-                                )
-                                Text(
-                                    text = item.description,
-                                    fontSize = 15.sp,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(vertical = 15.dp, horizontal = 10.dp),
-                                    color = Color.Gray
-                                )
-                            }
+                            Text(
+                                text = item?.title.toString(),
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .padding(horizontal = 5.dp)
+                                    .fillMaxWidth()
+                            )
+                            Text(
+                                text = item?.description.toString(),
+                                fontSize = 15.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 15.dp, horizontal = 10.dp),
+                                color = Color.Gray
+                            )
                         }
                     }
+                }
+            }
+            Log.d("TAG", products.itemCount.toString())
+            if (products.loadState.append is LoadState.Loading && products.itemCount < 100) {
+                Log.d("TAG", "CircularProgressIndicator")
+                Box(modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
             }
         }
@@ -137,7 +144,7 @@ fun ResultScreen(paddingValues: PaddingValues, products: List<Product>?) {
 }
 
 @Composable
-fun LoadImageFromUrl(url: String) {
+fun LoadImageFromUrl(url: String?) {
     val painter: Painter = rememberImagePainter(
         data = url,
         builder = {
@@ -150,7 +157,9 @@ fun LoadImageFromUrl(url: String) {
     Image(
         painter = painter,
         contentDescription = "Изображение товара",
-        modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 10.dp),
         contentScale = ContentScale.Crop,
         alignment = Alignment.Center
     )

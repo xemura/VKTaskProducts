@@ -1,6 +1,6 @@
-package com.xenia.vktaskproducts.model
+package com.xenia.vktaskproducts.data.remote
 
-data class Product(
+data class ProductDto(
     val brand: String,
     val category: String,
     val description: String,

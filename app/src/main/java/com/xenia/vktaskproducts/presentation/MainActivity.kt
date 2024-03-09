@@ -1,8 +1,9 @@
-package com.xenia.vktaskproducts.ui.screens
+package com.xenia.vktaskproducts.presentation
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -11,16 +12,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.xenia.vktaskproducts.ui.theme.VKTaskProductsTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private val productViewModel: ProductViewModel by lazy {
+        ViewModelProvider(this)[ProductViewModel::class.java]
+    }
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,10 +56,12 @@ class MainActivity : ComponentActivity() {
                             )
                         },
                         content = { paddingValues ->
-                            val productsViewModel: ViewModel = viewModel()
+                            //val viewModel = hiltViewModel<ProductViewModel>()
+                            val products = productViewModel.productPagingFlow.collectAsLazyPagingItems()
+
                             MainScreen(
                                 paddingValues,
-                                marsUiState = productsViewModel.productsList.value,
+                                products
                             )
                         }
                     )
