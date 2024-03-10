@@ -57,11 +57,16 @@ class MainActivity : ComponentActivity() {
                         },
                         content = { paddingValues ->
                             //val viewModel = hiltViewModel<ProductViewModel>()
-                            val products = productViewModel.productPagingFlow.collectAsLazyPagingItems()
+                            // val products = productViewModel.productPagingFlow.collectAsLazyPagingItems()
 
-                            MainScreen(
+//                            MainScreen(
+//                                paddingValues,
+//                                products
+//                            )
+
+                            PaginationExample(
                                 paddingValues,
-                                products
+                                productViewModel
                             )
                         }
                     )

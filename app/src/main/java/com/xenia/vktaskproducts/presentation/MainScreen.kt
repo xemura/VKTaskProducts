@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -19,6 +23,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,7 +42,10 @@ import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import coil.compose.rememberImagePainter
 import com.xenia.vktaskproducts.R
+import com.xenia.vktaskproducts.data.remote.APIService
 import com.xenia.vktaskproducts.domain.Product
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun MainScreen(
@@ -42,7 +54,7 @@ fun MainScreen(
 ) {
     val context = LocalContext.current
     LaunchedEffect(key1 = products.loadState) {
-        if(products.loadState.refresh is LoadState.Error) {
+        if (products.loadState.refresh is LoadState.Error) {
             Toast.makeText(
                 context,
                 "Error: " + (products.loadState.refresh as LoadState.Error).error.message,
@@ -79,7 +91,10 @@ fun MainScreen(
 }
 
 @Composable
-fun ResultScreen(paddingValues: PaddingValues, products: LazyPagingItems<Product>) {
+fun ResultScreen(
+    paddingValues: PaddingValues,
+    products: LazyPagingItems<Product>
+) {
 
     Column(
         modifier = Modifier
@@ -127,6 +142,14 @@ fun ResultScreen(paddingValues: PaddingValues, products: LazyPagingItems<Product
                                 modifier = Modifier.padding(vertical = 15.dp, horizontal = 10.dp),
                                 color = Color.Gray
                             )
+                            Text(
+                                text = "Price: ${item?.price.toString()} $",
+                                fontSize = 15.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .padding(bottom = 10.dp)
+                                    .fillMaxWidth(),
+                            )
                         }
                     }
                 }
@@ -134,8 +157,10 @@ fun ResultScreen(paddingValues: PaddingValues, products: LazyPagingItems<Product
             Log.d("TAG", products.itemCount.toString())
             if (products.loadState.append is LoadState.Loading && products.itemCount < 100) {
                 Log.d("TAG", "CircularProgressIndicator")
-                Box(modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator()
                 }
             }
@@ -246,4 +271,59 @@ private fun testColumn(columnHeights: IntArray): Int {
     }
     // at last we are returning our column index.
     return columnIndex
+}
+
+@Composable
+fun PaginationExample(
+    paddingValues: PaddingValues,
+    productViewModel: ProductViewModel
+) {
+    val page = remember { mutableIntStateOf(1) }
+    val loading = remember { mutableStateOf(false) }
+    val itemList = remember { mutableStateListOf<Product>() }
+    val listState = rememberLazyListState()
+
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(itemList) { item ->
+            Text(text = item.title, modifier = Modifier.padding(10.dp))
+        }
+
+        item {
+            if (loading.value) {
+                Box(modifier = Modifier.fillMaxWidth().padding(10.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(50.dp), strokeWidth = 2.dp)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(key1 = page.value) {
+        loading.value = true
+        delay(2000) // Simulate a network delay
+        var skip = 0
+        var limit = 10
+        productViewModel.getNewData(skip, limit)
+        delay(2000)
+        itemList.addAll(productViewModel.productsList)
+        loading.value = false
+    }
+
+    // Observe scroll state to load more items
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collectLatest { index ->
+                if (!loading.value && index != null && index >= itemList.size - 5) {
+                    page.value++
+                }
+            }
+    }
+}
+
+fun generateFakeData(page: Int): List<String> {
+
+    return List(20) { "Item ${(page - 1) * 20 + it + 1}" }
 }
