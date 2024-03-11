@@ -1,10 +1,6 @@
 package com.xenia.vktaskproducts.di
 
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
 import com.xenia.vktaskproducts.data.remote.APIService
-import com.xenia.vktaskproducts.data.remote.ProductDto
-import com.xenia.vktaskproducts.data.remote.ProductsSource
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,20 +21,5 @@ object AppModule {
             .addConverterFactory(MoshiConverterFactory.create())
             .build()
             .create(APIService::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun providePager(
-        productApi: APIService
-    ): Pager<Int, ProductDto> {
-        return Pager(
-            config = PagingConfig(pageSize = 10),
-            pagingSourceFactory = {
-                ProductsSource(
-                    productsApi = productApi
-                )
-            }
-        )
     }
 }
